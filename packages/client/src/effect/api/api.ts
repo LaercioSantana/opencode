@@ -1695,6 +1695,16 @@ export interface WorktreeApi<E = never> {
   readonly refresh: WorktreeRefreshOperation<E>
 }
 
+export type WorkspaceCreateInput = { readonly id?: Workspace.ID | undefined; readonly provider: string }
+export type WorkspaceCreateOutput = Workspace.ID
+export type WorkspaceCreateOperation<E = never> = (
+  input: WorkspaceCreateInput,
+) => Effect.Effect<WorkspaceCreateOutput, E>
+
+export interface WorkspaceApi<E = never> {
+  readonly create: WorkspaceCreateOperation<E>
+}
+
 export type VcsGetInput = {
   readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
 }
@@ -1812,6 +1822,7 @@ export interface AppApi<E = never> {
   readonly shell: ShellApi<E>
   readonly reference: ReferenceApi<E>
   readonly worktree: WorktreeApi<E>
+  readonly workspace: WorkspaceApi<E>
   readonly vcs: VcsApi<E>
   readonly debug: DebugApi<E>
   readonly migration: MigrationApi<E>
