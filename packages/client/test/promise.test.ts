@@ -329,6 +329,7 @@ test("session.get returns the wire projection", async () => {
   const result = await client.session.get({ sessionID: "ses_test" })
 
   expect(result.time.created).toBe(1_717_171_717_000)
+  expect(result.executing).toBe(true)
 })
 
 test("session instructions methods use the public HTTP contract", async () => {
@@ -647,6 +648,7 @@ const session = {
     },
     title: "Test",
     location: { directory: "/tmp/project" },
+    executing: true,
   },
 }
 
