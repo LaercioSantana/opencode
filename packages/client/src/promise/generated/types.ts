@@ -2320,16 +2320,6 @@ export type WorktreeError = {
 export const isWorktreeError = (value: unknown): value is WorktreeError =>
   typeof value === "object" && value !== null && "name" in value && value["name"] === "WorktreeError"
 
-export type WorkspaceCreateConflictError = {
-  readonly _tag: "WorkspaceCreateConflictError"
-  readonly workspaceID: string
-  readonly provider: string
-  readonly existingProvider: string
-  readonly message: string
-}
-export const isWorkspaceCreateConflictError = (value: unknown): value is WorkspaceCreateConflictError =>
-  typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "WorkspaceCreateConflictError"
-
 export type HealthGetOutput = ServiceHealth
 
 export type ServerGetOutput = { urls: Array<string> }
@@ -5639,13 +5629,6 @@ export type WorktreeRefreshInput = { readonly projectID: { readonly projectID: s
 
 export type WorktreeRefreshOutput = void
 
-export type WorkspaceCreateInput = {
-  readonly id?: { readonly id?: string | undefined; readonly provider: string }["id"]
-  readonly provider: { readonly id?: string | undefined; readonly provider: string }["provider"]
-}
-
-export type WorkspaceCreateOutput = { data: string }["data"]
-
 export type VcsGetInput = {
   readonly location?: {
     readonly location?: { readonly directory?: string | undefined; readonly workspace?: string | undefined } | undefined
@@ -5737,3 +5720,10 @@ export type ConfigGetInput = {
 }
 
 export type ConfigGetOutput = Array<ConfigEntry>
+
+export type WorkspaceCreateInput = {
+  readonly id?: { readonly id?: string | undefined; readonly provider: string }["id"]
+  readonly provider: { readonly id?: string | undefined; readonly provider: string }["provider"]
+}
+
+export type WorkspaceCreateOutput = { data: string }["data"]

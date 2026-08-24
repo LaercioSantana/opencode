@@ -92,10 +92,8 @@ it.live("creates idempotent caller-identified workspaces through the HttpApi", (
     const conflict = yield* create({ id, provider: "other" })
     expect(conflict.status).toBe(409)
     expect(yield* Effect.promise(() => conflict.json())).toMatchObject({
-      _tag: "WorkspaceCreateConflictError",
-      workspaceID: id,
-      provider: "other",
-      existingProvider: "fake",
+      _tag: "ConflictError",
+      resource: id,
     })
 
     expect((yield* create({ id: "invalid", provider: "fake" })).status).toBe(400)

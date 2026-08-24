@@ -219,7 +219,7 @@ const layer = (options: Options) =>
         create: Effect.fn("Workspace.create")(function* (input) {
           const workspaceID = input.id ?? ID.create()
           const existing = yield* db
-            .select()
+            .select({ provider: WorkspaceTable.provider })
             .from(WorkspaceTable)
             .where(eq(WorkspaceTable.id, workspaceID))
             .get()
@@ -234,12 +234,14 @@ const layer = (options: Options) =>
           }
           yield* registry.get(input.provider)
           const now = yield* Clock.currentTimeMillis
-          yield* db
+          const inserted = yield* db
             .insert(WorkspaceTable)
             .values({ id: workspaceID, provider: input.provider, binding: null, created_at: now, last_used_at: now })
             .onConflictDoNothing()
-            .run()
+            .returning({ id: WorkspaceTable.id })
+            .get()
             .pipe(Effect.orDie)
+          if (inserted) return workspaceID
           const row = yield* load(workspaceID).pipe(Effect.orDie)
           if (row.provider !== input.provider)
             return yield* new CreateConflict({

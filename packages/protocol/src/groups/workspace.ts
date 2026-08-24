@@ -1,18 +1,7 @@
 import { Workspace } from "@opencode-ai/schema/workspace"
 import { Schema } from "effect"
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
-import { ProviderNotFoundError } from "../errors.js"
-
-export class WorkspaceCreateConflictError extends Schema.TaggedError<WorkspaceCreateConflictError>()(
-  "WorkspaceCreateConflictError",
-  {
-    workspaceID: Workspace.ID,
-    provider: Schema.String,
-    existingProvider: Schema.String,
-    message: Schema.String,
-  },
-  { httpApiStatus: 409 },
-) {}
+import { ConflictError, ProviderNotFoundError } from "../errors.js"
 
 export const WorkspaceGroup = HttpApiGroup.make("server.workspace")
   .add(
@@ -22,7 +11,7 @@ export const WorkspaceGroup = HttpApiGroup.make("server.workspace")
         provider: Schema.String,
       }),
       success: Schema.Struct({ data: Workspace.ID }),
-      error: [WorkspaceCreateConflictError, ProviderNotFoundError],
+      error: [ConflictError, ProviderNotFoundError],
     }).annotateMerge(
       OpenApi.annotations({
         identifier: "v2.workspace.create",
