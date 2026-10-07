@@ -1158,13 +1158,25 @@ const layer = Layer.effect(
             continue
           }
 
-          if (
-            lastFinished &&
-            lastFinished.summary !== true &&
-            (yield* compaction.isOverflow({ tokens: lastFinished.tokens, model }))
-          ) {
-            yield* compaction.create({ sessionID, agent: lastUser.agent, model: lastUser.model, auto: true })
-            continue
+          if (lastFinished && lastFinished.summary !== true) {
+            const tokens = lastFinished.tokens
+            if (yield* compaction.isOverflow({ tokens, model })) {
+              // Prune old tool outputs first; only compact if pruning did not
+              // free enough context to fall back under the usable threshold.
+              const pruned = yield* compaction.prune({ sessionID })
+              if (pruned > 0) {
+                msgs = yield* MessageV2.filterCompactedEffect(sessionID).pipe(
+                  Effect.provideService(Database.Service, database),
+                )
+              }
+              const count =
+                tokens.total ?? tokens.input + tokens.output + tokens.cache.read + tokens.cache.write
+              const after: SessionV1.Assistant["tokens"] = { ...tokens, total: Math.max(0, count - pruned) }
+              if (yield* compaction.isOverflow({ tokens: after, model })) {
+                yield* compaction.create({ sessionID, agent: lastUser.agent, model: lastUser.model, auto: true })
+                continue
+              }
+            }
           }
 
           const agent = yield* agents.get(lastUser.agent)
@@ -1335,7 +1347,6 @@ const layer = Layer.effect(
           continue
         }
 
-        yield* compaction.prune({ sessionID }).pipe(Effect.ignore, Effect.forkIn(scope))
         return yield* lastAssistant(sessionID)
       },
     )

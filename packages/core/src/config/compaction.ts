@@ -12,4 +12,7 @@ export class Info extends Schema.Class<Info>("ConfigV2.Compaction")({
   prune: Schema.Boolean.pipe(Schema.optional),
   keep: Keep.pipe(Schema.optional),
   buffer: NonNegativeInt.pipe(Schema.optional),
+  pruneProtect: NonNegativeInt.pipe(Schema.optional),
+  pruneMinimum: NonNegativeInt.pipe(Schema.optional),
+  pruneProtectedTools: Schema.mutable(Schema.Array(Schema.String)).pipe(Schema.optional),
 }) {}
