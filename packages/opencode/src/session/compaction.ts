@@ -167,7 +167,7 @@ export interface Interface {
     tokens: SessionV1.Assistant["tokens"]
     model: Provider.Model
   }) => Effect.Effect<boolean>
-  readonly prune: (input: { sessionID: SessionID }) => Effect.Effect<void>
+  readonly prune: (input: { sessionID: SessionID }) => Effect.Effect<number>
   readonly process: (input: {
     parentID: MessageID
     messages: SessionV1.WithParts[]
@@ -268,17 +268,21 @@ const layer = Layer.effect(
       }
     })
 
-    // goes backwards through parts until there are PRUNE_PROTECT tokens worth of tool
-    // calls, then erases output of older tool calls to free context space
+    // goes backwards through parts until there are `protect` tokens worth of tool
+    // calls, then erases output of older tool calls to free context space.
+    // Returns the number of tokens actually freed (0 when nothing was pruned).
     const prune = Effect.fn("SessionCompaction.prune")(function* (input: { sessionID: SessionID }) {
       const cfg = yield* config.get()
-      if (!cfg.compaction?.prune) return
-      yield* Effect.logInfo("pruning")
+      if (!cfg.compaction?.prune) return 0
+      const protect = cfg.compaction?.prune_protect ?? PRUNE_PROTECT
+      const minimum = cfg.compaction?.prune_minimum ?? PRUNE_MINIMUM
+      const protectedTools = cfg.compaction?.prune_protected_tools ?? PRUNE_PROTECTED_TOOLS
+      yield* Effect.logInfo("pruning", { protect, minimum })
 
       const msgs = yield* session
         .messages({ sessionID: input.sessionID })
         .pipe(Effect.catchIf(NotFoundError.isInstance, () => Effect.succeed(undefined)))
-      if (!msgs) return
+      if (!msgs) return 0
 
       let total = 0
       let pruned = 0
@@ -294,18 +298,18 @@ const layer = Layer.effect(
           const part = msg.parts[partIndex]
           if (part.type !== "tool") continue
           if (part.state.status !== "completed") continue
-          if (PRUNE_PROTECTED_TOOLS.includes(part.tool)) continue
+          if (protectedTools.includes(part.tool)) continue
           if (part.state.time.compacted) break loop
           const estimate = Token.estimate(part.state.output)
           total += estimate
-          if (total <= PRUNE_PROTECT) continue
+          if (total <= protect) continue
           pruned += estimate
           toPrune.push(part)
         }
       }
 
       yield* Effect.logInfo("found", { pruned, total })
-      if (pruned > PRUNE_MINIMUM) {
+      if (pruned > minimum) {
         for (const part of toPrune) {
           if (part.state.status === "completed") {
             part.state.time.compacted = Date.now()
@@ -313,7 +317,9 @@ const layer = Layer.effect(
           }
         }
         yield* Effect.logInfo("pruned", { count: toPrune.length })
+        return pruned
       }
+      return 0
     })
 
     const processCompaction = Effect.fn("SessionCompaction.process")(function* (input: {

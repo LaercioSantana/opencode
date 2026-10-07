@@ -154,6 +154,16 @@ export const Info = Schema.Struct({
       prune: Schema.optional(Schema.Boolean).annotate({
         description: "Enable pruning of old tool outputs (default: false)",
       }),
+      prune_protect: Schema.optional(NonNegativeInt).annotate({
+        description:
+          "Tokens of most recent tool call output to protect from pruning. Everything older than this window is a pruning candidate (default: 40000).",
+      }),
+      prune_minimum: Schema.optional(NonNegativeInt).annotate({
+        description: "Minimum prunable tokens that must be exceeded before pruning is applied (default: 20000)",
+      }),
+      prune_protected_tools: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+        description: "Tool names whose completed outputs are never pruned (default: [\"skill\"])",
+      }),
       tail_turns: Schema.optional(NonNegativeInt).annotate({
         description:
           "Maximum number of recent user turns, including their following assistant/tool responses, to keep verbatim during compaction. By default retention is limited only by the preserved token budget.",
